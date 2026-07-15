@@ -40,3 +40,21 @@ export class InvalidEmailError extends DomainError {
     super(`Email inválido: "${value}"`);
   }
 }
+
+export class InvalidPhoneNumberError extends DomainError {
+  constructor(value: string) {
+    super(`Número de teléfono inválido: "${value}" (se espera formato E.164)`);
+  }
+}
+
+export class InvalidAddressError extends DomainError {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class InvalidNameError extends DomainError {
+  constructor(field: string) {
+    super(`El campo "${field}" es obligatorio`);
+  }
+}
