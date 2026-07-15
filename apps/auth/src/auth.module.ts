@@ -3,6 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PasswordHasher } from './application/ports/password-hasher.port';
 import { TokenService } from './application/ports/token-service.port';
+import { LoginUseCase } from './application/use-cases/login.use-case';
+import { LogoutUseCase } from './application/use-cases/logout.use-case';
+import { RefreshTokensUseCase } from './application/use-cases/refresh-tokens.use-case';
+import { RegisterUseCase } from './application/use-cases/register.use-case';
 import { RefreshTokenRepository } from './domain/ports/refresh-token.repository';
 import { UserRepository } from './domain/ports/user.repository';
 import { validateAuthEnv } from './infrastructure/config/env.validation';
@@ -25,6 +29,61 @@ import { JwtTokenService } from './infrastructure/security/jwt-token.service';
     { provide: RefreshTokenRepository, useClass: RefreshTokenKnexRepository },
     { provide: PasswordHasher, useClass: Argon2PasswordHasher },
     { provide: TokenService, useClass: JwtTokenService },
+    // Casos de uso: clases puras registradas por factory (application sin NestJS).
+    {
+      provide: RegisterUseCase,
+      useFactory: (
+        users: UserRepository,
+        hasher: PasswordHasher,
+        tokens: TokenService,
+        refreshTokens: RefreshTokenRepository,
+      ) => new RegisterUseCase(users, hasher, tokens, refreshTokens),
+      inject: [
+        UserRepository,
+        PasswordHasher,
+        TokenService,
+        RefreshTokenRepository,
+      ],
+    },
+    {
+      provide: LoginUseCase,
+      useFactory: (
+        users: UserRepository,
+        hasher: PasswordHasher,
+        tokens: TokenService,
+        refreshTokens: RefreshTokenRepository,
+      ) => new LoginUseCase(users, hasher, tokens, refreshTokens),
+      inject: [
+        UserRepository,
+        PasswordHasher,
+        TokenService,
+        RefreshTokenRepository,
+      ],
+    },
+    {
+      provide: RefreshTokensUseCase,
+      useFactory: (
+        refreshTokens: RefreshTokenRepository,
+        tokens: TokenService,
+        users: UserRepository,
+        hasher: PasswordHasher,
+      ) => new RefreshTokensUseCase(refreshTokens, tokens, users, hasher),
+      inject: [
+        RefreshTokenRepository,
+        TokenService,
+        UserRepository,
+        PasswordHasher,
+      ],
+    },
+    {
+      provide: LogoutUseCase,
+      useFactory: (
+        refreshTokens: RefreshTokenRepository,
+        tokens: TokenService,
+      ) => new LogoutUseCase(refreshTokens, tokens),
+      inject: [RefreshTokenRepository, TokenService],
+    },
   ],
+  exports: [RegisterUseCase, LoginUseCase, RefreshTokensUseCase, LogoutUseCase],
 })
 export class AuthModule {}

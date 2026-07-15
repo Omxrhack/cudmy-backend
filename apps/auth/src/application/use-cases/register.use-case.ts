@@ -1,0 +1,48 @@
+import { User } from '../../domain/entities/user.entity';
+import { EmailAlreadyInUseError } from '../../domain/errors/auth-domain.errors';
+import { RefreshTokenRepository } from '../../domain/ports/refresh-token.repository';
+import { UserRepository } from '../../domain/ports/user.repository';
+import { Email } from '../../domain/value-objects/email.vo';
+import { HashedPassword } from '../../domain/value-objects/hashed-password.vo';
+import { RegisterCommand, RegisterResult } from '../dtos/auth.dtos';
+import { PasswordHasher } from '../ports/password-hasher.port';
+import { TokenService } from '../ports/token-service.port';
+import { issueSession } from './issue-session';
+
+export class RegisterUseCase {
+  constructor(
+    private readonly users: UserRepository,
+    private readonly hasher: PasswordHasher,
+    private readonly tokens: TokenService,
+    private readonly refreshTokens: RefreshTokenRepository,
+  ) {}
+
+  async execute(cmd: RegisterCommand): Promise<RegisterResult> {
+    const email = new Email(cmd.email);
+
+    const existing = await this.users.findByEmail(email);
+    if (existing) {
+      throw new EmailAlreadyInUseError(email.raw);
+    }
+
+    const passwordHash = new HashedPassword(
+      await this.hasher.hash(cmd.password),
+    );
+    const user = await this.users.create({
+      email,
+      passwordHash,
+      roles: User.DEFAULT_ROLES,
+    });
+
+    const session = await issueSession(user, {
+      tokens: this.tokens,
+      hasher: this.hasher,
+      refreshTokens: this.refreshTokens,
+    });
+
+    return {
+      ...session,
+      user: { id: user.id, email: user.email.raw, roles: user.roles },
+    };
+  }
+}
