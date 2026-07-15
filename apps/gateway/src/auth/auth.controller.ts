@@ -13,6 +13,7 @@ import {
   AUTH_PATTERNS,
   AUTH_SERVICE,
   AuthTokensResponse,
+  RegisterRequest,
   RegisterResponse,
 } from '@app/common';
 import { AuthUser, JwtAuthGuard } from '../common/jwt-auth.guard';
@@ -28,7 +29,16 @@ export class AuthController {
 
   @Post('register')
   register(@Body() dto: RegisterDto): Promise<RegisterResponse> {
-    return this.forward(AUTH_PATTERNS.REGISTER, dto);
+    // confirmPassword se valida aquí y NO se reenvía por NATS.
+    const payload: RegisterRequest = {
+      email: dto.email,
+      password: dto.password,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      phoneNumber: dto.phoneNumber,
+      address: { ...dto.address, country: dto.address.country ?? 'MX' },
+    };
+    return this.forward(AUTH_PATTERNS.REGISTER, payload);
   }
 
   @Post('login')

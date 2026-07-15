@@ -4,6 +4,9 @@ export interface AccessTokenPayload {
   sub: string;
   email: string;
   roles: Role[];
+  phoneNumber: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
 }
 
 export interface RefreshTokenPayload {

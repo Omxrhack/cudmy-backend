@@ -29,7 +29,13 @@ export class JwtTokenService extends TokenService {
 
   signAccess(payload: AccessTokenPayload): Promise<string> {
     return this.jwt.signAsync(
-      { email: payload.email, roles: payload.roles },
+      {
+        email: payload.email,
+        roles: payload.roles,
+        phoneNumber: payload.phoneNumber,
+        emailVerified: payload.emailVerified,
+        phoneVerified: payload.phoneVerified,
+      },
       // expiresIn se tipa como StringValue (ms); el TTL viene de env como string.
       {
         subject: payload.sub,

@@ -1,12 +1,31 @@
 import { User } from '../../domain/entities/user.entity';
-import { EmailAlreadyInUseError } from '../../domain/errors/auth-domain.errors';
+import {
+  EmailAlreadyInUseError,
+  InvalidAddressError,
+  InvalidPhoneNumberError,
+} from '../../domain/errors/auth-domain.errors';
 import { RefreshTokenRepository } from '../../domain/ports/refresh-token.repository';
 import { UserRepository } from '../../domain/ports/user.repository';
+import { Address } from '../../domain/value-objects/address.vo';
 import { Email } from '../../domain/value-objects/email.vo';
 import { HashedPassword } from '../../domain/value-objects/hashed-password.vo';
+import { PhoneNumber } from '../../domain/value-objects/phone-number.vo';
 import { PasswordHasher } from '../ports/password-hasher.port';
 import { TokenService } from '../ports/token-service.port';
+import { RegisterCommand } from '../dtos/auth.dtos';
 import { RegisterUseCase } from './register.use-case';
+
+function buildAddress(): Address {
+  return new Address({
+    street: 'Calle 1',
+    extNumber: '10',
+    neighborhood: 'Centro',
+    city: 'CDMX',
+    state: 'CDMX',
+    postalCode: '01000',
+    country: 'MX',
+  });
+}
 
 function buildUser(): User {
   return new User({
@@ -14,10 +33,33 @@ function buildUser(): User {
     email: new Email('a@b.com'),
     passwordHash: new HashedPassword('$argon2id$hash'),
     roles: ['student'],
+    firstName: 'Ada',
+    lastName: 'Lovelace',
+    phoneNumber: new PhoneNumber('+5215555555555'),
+    address: buildAddress(),
+    emailVerifiedAt: null,
+    phoneVerifiedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
 }
+
+const validCommand: RegisterCommand = {
+  email: 'a@b.com',
+  password: 'password123',
+  firstName: 'Ada',
+  lastName: 'Lovelace',
+  phoneNumber: '+5215555555555',
+  address: {
+    street: 'Calle 1',
+    extNumber: '10',
+    neighborhood: 'Centro',
+    city: 'CDMX',
+    state: 'CDMX',
+    postalCode: '01000',
+    country: 'MX',
+  },
+};
 
 describe('RegisterUseCase', () => {
   let users: jest.Mocked<UserRepository>;
@@ -62,10 +104,7 @@ describe('RegisterUseCase', () => {
       expiresAt: new Date(Date.now() + 10_000),
     });
 
-    const result = await useCase.execute({
-      email: 'a@b.com',
-      password: 'password123',
-    });
+    const result = await useCase.execute(validCommand);
 
     expect(result.accessToken).toBe('access-token');
     expect(result.refreshToken).toBe('refresh-token');
@@ -73,8 +112,16 @@ describe('RegisterUseCase', () => {
       id: 'user-1',
       email: 'a@b.com',
       roles: ['student'],
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      phoneNumber: '+5215555555555',
+      emailVerified: false,
+      phoneVerified: false,
     });
     expect(users.create).toHaveBeenCalledTimes(1);
+    expect(users.create).toHaveBeenCalledWith(
+      expect.objectContaining({ firstName: 'Ada', roles: ['student'] }),
+    );
     expect(refreshTokens.create).toHaveBeenCalledWith(
       expect.objectContaining({ jti: 'jti-1', userId: 'user-1' }),
     );
@@ -83,9 +130,30 @@ describe('RegisterUseCase', () => {
   it('rechaza un email ya registrado', async () => {
     users.findByEmail.mockResolvedValue(buildUser());
 
+    await expect(useCase.execute(validCommand)).rejects.toBeInstanceOf(
+      EmailAlreadyInUseError,
+    );
+    expect(users.create).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un teléfono con formato inválido', async () => {
+    users.findByEmail.mockResolvedValue(null);
+
     await expect(
-      useCase.execute({ email: 'a@b.com', password: 'password123' }),
-    ).rejects.toBeInstanceOf(EmailAlreadyInUseError);
+      useCase.execute({ ...validCommand, phoneNumber: '12345' }),
+    ).rejects.toBeInstanceOf(InvalidPhoneNumberError);
+    expect(users.create).not.toHaveBeenCalled();
+  });
+
+  it('rechaza una dirección incompleta', async () => {
+    users.findByEmail.mockResolvedValue(null);
+
+    await expect(
+      useCase.execute({
+        ...validCommand,
+        address: { ...validCommand.address, city: '' },
+      }),
+    ).rejects.toBeInstanceOf(InvalidAddressError);
     expect(users.create).not.toHaveBeenCalled();
   });
 });

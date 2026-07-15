@@ -56,6 +56,9 @@ export class RefreshTokensUseCase {
       sub: user.id,
       email: user.email.raw,
       roles: user.roles,
+      phoneNumber: user.phoneNumber.raw,
+      emailVerified: user.isEmailVerified,
+      phoneVerified: user.isPhoneVerified,
     });
     const tokenHash = await this.hasher.hash(newRefresh.token);
     await this.refreshTokens.create({

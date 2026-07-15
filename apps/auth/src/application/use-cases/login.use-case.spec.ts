@@ -2,8 +2,10 @@ import { User } from '../../domain/entities/user.entity';
 import { InvalidCredentialsError } from '../../domain/errors/auth-domain.errors';
 import { RefreshTokenRepository } from '../../domain/ports/refresh-token.repository';
 import { UserRepository } from '../../domain/ports/user.repository';
+import { Address } from '../../domain/value-objects/address.vo';
 import { Email } from '../../domain/value-objects/email.vo';
 import { HashedPassword } from '../../domain/value-objects/hashed-password.vo';
+import { PhoneNumber } from '../../domain/value-objects/phone-number.vo';
 import { PasswordHasher } from '../ports/password-hasher.port';
 import { TokenService } from '../ports/token-service.port';
 import { LoginUseCase } from './login.use-case';
@@ -14,6 +16,20 @@ function buildUser(): User {
     email: new Email('a@b.com'),
     passwordHash: new HashedPassword('$argon2id$stored'),
     roles: ['student'],
+    firstName: 'Ada',
+    lastName: 'Lovelace',
+    phoneNumber: new PhoneNumber('+5215555555555'),
+    address: new Address({
+      street: 'Calle 1',
+      extNumber: '10',
+      neighborhood: 'Centro',
+      city: 'CDMX',
+      state: 'CDMX',
+      postalCode: '01000',
+      country: 'MX',
+    }),
+    emailVerifiedAt: null,
+    phoneVerifiedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   });

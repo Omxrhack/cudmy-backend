@@ -12,12 +12,18 @@ export interface AuthUser {
   userId: string;
   email: string;
   roles: string[];
+  phoneNumber: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
 }
 
 interface AccessTokenClaims {
   sub: string;
   email: string;
   roles: string[];
+  phoneNumber?: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
 }
 
 /**
@@ -51,6 +57,9 @@ export class JwtAuthGuard implements CanActivate {
         userId: claims.sub,
         email: claims.email,
         roles: claims.roles,
+        phoneNumber: claims.phoneNumber ?? '',
+        emailVerified: claims.emailVerified ?? false,
+        phoneVerified: claims.phoneVerified ?? false,
       };
       return true;
     } catch {

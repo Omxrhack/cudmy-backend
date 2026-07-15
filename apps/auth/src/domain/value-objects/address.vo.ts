@@ -41,7 +41,9 @@ export class Address {
       !postalCode ||
       !country
     ) {
-      throw new InvalidAddressError('Faltan campos obligatorios de la dirección');
+      throw new InvalidAddressError(
+        'Faltan campos obligatorios de la dirección',
+      );
     }
     // El CP mexicano son 5 dígitos; para otros países solo se exige no vacío.
     if (country === 'MX' && !/^\d{5}$/.test(postalCode)) {

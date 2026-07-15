@@ -24,5 +24,8 @@ export abstract class UserRepository {
   abstract findById(id: string): Promise<User | null>;
   abstract create(data: NewUser): Promise<User>;
   /** Marca el email o el teléfono del usuario como verificado (idempotente). */
-  abstract markVerified(userId: string, channel: VerifiedChannel): Promise<void>;
+  abstract markVerified(
+    userId: string,
+    channel: VerifiedChannel,
+  ): Promise<void>;
 }

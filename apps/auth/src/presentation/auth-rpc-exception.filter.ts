@@ -5,8 +5,11 @@ import { ErrorCode, RpcErrorPayload } from '@app/common';
 import {
   DomainError,
   EmailAlreadyInUseError,
+  InvalidAddressError,
   InvalidCredentialsError,
   InvalidEmailError,
+  InvalidNameError,
+  InvalidPhoneNumberError,
   InvalidRefreshTokenError,
   RefreshTokenReuseError,
 } from '../domain/errors/auth-domain.errors';
@@ -20,7 +23,14 @@ function mapDomainError(error: DomainError): ErrorCode {
     return ErrorCode.REFRESH_TOKEN_REUSE;
   if (error instanceof InvalidRefreshTokenError)
     return ErrorCode.INVALID_REFRESH_TOKEN;
-  if (error instanceof InvalidEmailError) return ErrorCode.VALIDATION;
+  if (
+    error instanceof InvalidEmailError ||
+    error instanceof InvalidPhoneNumberError ||
+    error instanceof InvalidAddressError ||
+    error instanceof InvalidNameError
+  ) {
+    return ErrorCode.VALIDATION;
+  }
   return ErrorCode.INTERNAL;
 }
 

@@ -12,7 +12,8 @@ import {
 import knexFactory from 'knex';
 import request from 'supertest';
 import { GenericContainer, StartedTestContainer, Wait } from 'testcontainers';
-import { up } from '../../auth/migrations/20260714000000_init_auth';
+import { up as initAuth } from '../../auth/migrations/20260714000000_init_auth';
+import { up as addProfile } from '../../auth/migrations/20260715000000_add_profile_and_verification';
 
 jest.setTimeout(180_000);
 
@@ -25,6 +26,23 @@ describe('Auth flow (e2e)', () => {
 
   const email = `e2e_${Date.now()}@cudmy.test`;
   const password = 'Sup3rSecret!';
+  const registerBody = {
+    email,
+    password,
+    confirmPassword: password,
+    firstName: 'Ada',
+    lastName: 'Lovelace',
+    phoneNumber: '+5215555555555',
+    address: {
+      street: 'Calle 1',
+      extNumber: '10',
+      neighborhood: 'Centro',
+      city: 'CDMX',
+      state: 'CDMX',
+      postalCode: '01000',
+      country: 'MX',
+    },
+  };
 
   beforeAll(async () => {
     pg = await new PostgreSqlContainer('postgres:16-alpine')
@@ -41,7 +59,8 @@ describe('Auth flow (e2e)', () => {
     const natsUrl = `nats://${nats.getHost()}:${nats.getMappedPort(4222)}`;
 
     const migrationDb = knexFactory({ client: 'pg', connection: databaseUrl });
-    await up(migrationDb);
+    await initAuth(migrationDb);
+    await addProfile(migrationDb);
     await migrationDb.destroy();
 
     process.env.DATABASE_URL = databaseUrl;
@@ -100,19 +119,24 @@ describe('Auth flow (e2e)', () => {
   });
 
   it('completa el flujo register -> login -> refresh -> logout con rotación y detección de reúso', async () => {
-    const register = await http
-      .post('/auth/register')
-      .send({ email, password });
+    const register = await http.post('/auth/register').send(registerBody);
     expect(register.status).toBe(201);
     expect(register.body.accessToken).toBeDefined();
     expect(register.body.refreshToken).toBeDefined();
     expect(register.body.user.roles).toEqual(['student']);
+    expect(register.body.user.firstName).toBe('Ada');
+    expect(register.body.user.lastName).toBe('Lovelace');
+    expect(register.body.user.phoneNumber).toBe('+5215555555555');
+    expect(register.body.user.emailVerified).toBe(false);
+    expect(register.body.user.phoneVerified).toBe(false);
 
     const me = await http
       .get('/auth/me')
       .set('Authorization', `Bearer ${register.body.accessToken}`);
     expect(me.status).toBe(200);
     expect(me.body.email).toBe(email);
+    expect(me.body.emailVerified).toBe(false);
+    expect(me.body.phoneVerified).toBe(false);
 
     const badMe = await http
       .get('/auth/me')
@@ -154,7 +178,7 @@ describe('Auth flow (e2e)', () => {
   });
 
   it('mapea los errores de dominio a status HTTP', async () => {
-    const dup = await http.post('/auth/register').send({ email, password });
+    const dup = await http.post('/auth/register').send(registerBody);
     expect(dup.status).toBe(409);
     expect(dup.body.error).toBe('EMAIL_ALREADY_IN_USE');
 
@@ -163,9 +187,18 @@ describe('Auth flow (e2e)', () => {
       .send({ email, password: 'wrongwrong' });
     expect(bad.status).toBe(401);
 
+    // DTO inválido (falta perfil/dirección) -> 400
     const invalid = await http
       .post('/auth/register')
       .send({ email: 'not-an-email' });
     expect(invalid.status).toBe(400);
+
+    // confirmPassword no coincide -> 400
+    const mismatch = await http.post('/auth/register').send({
+      ...registerBody,
+      email: `mismatch_${Date.now()}@cudmy.test`,
+      confirmPassword: 'otra-cosa',
+    });
+    expect(mismatch.status).toBe(400);
   });
 });

@@ -22,6 +22,9 @@ export async function issueSession(
     sub: user.id,
     email: user.email.raw,
     roles: user.roles,
+    phoneNumber: user.phoneNumber.raw,
+    emailVerified: user.isEmailVerified,
+    phoneVerified: user.isPhoneVerified,
   });
 
   const refresh = await deps.tokens.signRefresh(user.id);
