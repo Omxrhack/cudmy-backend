@@ -1,98 +1,86 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# cudmy-backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend de la plataforma de cursos **Cudmy** (tipo Udemy). Monorepo NestJS con
+Clean Architecture y microservicios sobre NATS. El primer microservicio es
+**auth** (registro, login, refresh con rotación y logout).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+> Contexto completo de arquitectura, convenciones y decisiones en [`CLAUDE.md`](./CLAUDE.md).
 
-## Description
+## Stack
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+NestJS (monorepo nativo) · NATS · Knex + PostgreSQL · argon2 · JWT · class-validator ·
+`@nestjs/config` · pnpm · Jest.
 
-## Project setup
+## Estructura
 
-```bash
-$ npm install
+```
+apps/
+  gateway/   # API HTTP pública; reenvía a los microservicios por NATS
+  auth/      # Microservicio de autenticación (NATS) + migraciones Knex
+libs/
+  common/    # Contratos compartidos: patrones NATS, códigos de error, tokens DI
 ```
 
-## Compile and run the project
+## Requisitos
+
+- Node.js >= 20
+- pnpm (`corepack enable`)
+- Docker (para Postgres + NATS y para los tests e2e)
+
+## Puesta en marcha
 
 ```bash
-# development
-$ npm run start
+# 1. Variables de entorno
+cp .env.example .env         # ajusta secretos y POSTGRES_PORT si el 5432 está ocupado
 
-# watch mode
-$ npm run start:dev
+# 2. Dependencias
+pnpm install
 
-# production mode
-$ npm run start:prod
+# 3. Infraestructura local (Postgres + NATS)
+docker compose up -d
+
+# 4. Migraciones de la BD de auth (Knex)
+pnpm db:migrate
+
+# 5. Levantar los servicios (en dos terminales)
+pnpm start:dev auth
+pnpm start:dev gateway
 ```
 
-## Run tests
+El gateway queda en `http://localhost:${GATEWAY_PORT:-3000}` (health en `GET /health`).
+
+## API (a través del gateway)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/auth/register` | Crea usuario y devuelve `{ accessToken, refreshToken, user }` |
+| POST | `/auth/login` | Devuelve `{ accessToken, refreshToken }` |
+| POST | `/auth/refresh` | Rota el refresh token; `{ accessToken, refreshToken }` |
+| POST | `/auth/logout` | Revoca el refresh token (`allSessions` opcional) |
+| GET | `/auth/me` | Ruta protegida (requiere `Authorization: Bearer <access>`) |
+
+Ejemplo:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+curl -X POST http://localhost:3000/auth/register \
+  -H 'content-type: application/json' \
+  -d '{"email":"alumno@cudmy.mx","password":"Sup3rSecret!"}'
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Scripts útiles
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+pnpm build          # compila gateway + auth
+pnpm lint           # ESLint (incluye la regla de fronteras de Clean Architecture)
+pnpm test           # tests unitarios (no requiere Docker)
+pnpm test:e2e       # e2e del flujo completo (requiere Docker: Testcontainers)
+pnpm db:migrate     # aplica migraciones Knex
+pnpm db:rollback    # revierte la última migración
+pnpm db:make <n>    # crea una migración nueva
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Seguridad de tokens
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- **Access token** (JWT, ~15m): payload `{ sub, email, roles }`, validado localmente en el gateway.
+- **Refresh token** (JWT, ~7d): guardado **hasheado** (argon2) con su `jti`; **rotación** en cada
+  refresh y **detección de reúso** (si se reusa un token revocado se revocan todas las sesiones del usuario).

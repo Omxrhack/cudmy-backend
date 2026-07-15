@@ -10,7 +10,12 @@ import { HealthController } from './health.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, validate: validateGatewayEnv }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: validateGatewayEnv,
+      // En tests el entorno se inyecta por process.env (Testcontainers); ignora el .env local.
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
+    }),
     JwtModule.register({}),
     ClientsModule.registerAsync([
       {

@@ -19,7 +19,12 @@ import { AuthController } from './presentation/auth.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, validate: validateAuthEnv }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: validateAuthEnv,
+      // En tests el entorno se inyecta por process.env (Testcontainers); ignora el .env local.
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
+    }),
     // Los secretos/TTL se pasan por-firma en JwtTokenService (access vs refresh).
     JwtModule.register({}),
   ],

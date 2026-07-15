@@ -32,6 +32,18 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  // Tests: expect(mock.method) dispara unbound-method (falso positivo con jest) y
+  // supertest expone `.body` como any (no-unsafe-*). Se relajan solo en specs.
+  {
+    files: ['**/*.spec.ts', '**/*.e2e-spec.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+    },
+  },
   // Clean Architecture: el dominio y la aplicación no conocen NestJS, la BD ni HTTP.
   {
     files: ['apps/auth/src/domain/**/*.ts', 'apps/auth/src/application/**/*.ts'],
