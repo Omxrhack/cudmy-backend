@@ -15,6 +15,7 @@ import { RefreshTokenKnexRepository } from './infrastructure/persistence/knex/re
 import { UserKnexRepository } from './infrastructure/persistence/knex/user.knex.repository';
 import { Argon2PasswordHasher } from './infrastructure/security/argon2-password-hasher';
 import { JwtTokenService } from './infrastructure/security/jwt-token.service';
+import { AuthController } from './presentation/auth.controller';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { JwtTokenService } from './infrastructure/security/jwt-token.service';
     // Los secretos/TTL se pasan por-firma en JwtTokenService (access vs refresh).
     JwtModule.register({}),
   ],
+  controllers: [AuthController],
   providers: [
     KnexService,
     // Puertos (clase abstracta) -> adaptadores concretos.

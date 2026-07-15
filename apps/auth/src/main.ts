@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AuthModule } from './auth.module';
+import { AuthRpcExceptionFilter } from './presentation/auth-rpc-exception.filter';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
@@ -14,6 +15,7 @@ async function bootstrap(): Promise<void> {
     },
   );
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  app.useGlobalFilters(new AuthRpcExceptionFilter());
   await app.listen();
 
   console.log('[auth] microservicio escuchando en NATS');
