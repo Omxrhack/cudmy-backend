@@ -30,6 +30,16 @@
         "webpack": false
       }
     },
+    "verification": {
+      "type": "application",
+      "root": "apps/verification",
+      "entryFile": "main",
+      "sourceRoot": "apps/verification/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/verification/tsconfig.app.json",
+        "webpack": false
+      }
+    },
     "common": {
       "type": "library",
       "root": "libs/common",

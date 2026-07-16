@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { AUTH_SERVICE } from '@app/common';
+import { AUTH_SERVICE, VERIFICATION_SERVICE } from '@app/common';
 import { AuthController } from './auth/auth.controller';
 import { JwtAuthGuard } from './common/jwt-auth.guard';
 import { validateGatewayEnv } from './common/env.validation';
 import { HealthController } from './health.controller';
+import { VerificationController } from './verification/verification.controller';
 
 @Module({
   imports: [
@@ -26,9 +27,17 @@ import { HealthController } from './health.controller';
           options: { servers: [config.getOrThrow<string>('NATS_URL')] },
         }),
       },
+      {
+        name: VERIFICATION_SERVICE,
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.NATS,
+          options: { servers: [config.getOrThrow<string>('NATS_URL')] },
+        }),
+      },
     ]),
   ],
-  controllers: [HealthController, AuthController],
+  controllers: [HealthController, AuthController, VerificationController],
   providers: [JwtAuthGuard],
 })
 export class GatewayModule {}

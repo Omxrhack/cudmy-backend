@@ -46,7 +46,12 @@ export default tseslint.config(
   },
   // Clean Architecture: el dominio y la aplicación no conocen NestJS, la BD ni HTTP.
   {
-    files: ['apps/auth/src/domain/**/*.ts', 'apps/auth/src/application/**/*.ts'],
+    files: [
+      'apps/auth/src/domain/**/*.ts',
+      'apps/auth/src/application/**/*.ts',
+      'apps/verification/src/domain/**/*.ts',
+      'apps/verification/src/application/**/*.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',

@@ -12,6 +12,7 @@ import { HashedPassword } from '../../domain/value-objects/hashed-password.vo';
 import { PhoneNumber } from '../../domain/value-objects/phone-number.vo';
 import { PasswordHasher } from '../ports/password-hasher.port';
 import { TokenService } from '../ports/token-service.port';
+import { UserRegisteredPublisher } from '../ports/user-registered.publisher.port';
 import { RegisterCommand } from '../dtos/auth.dtos';
 import { RegisterUseCase } from './register.use-case';
 
@@ -66,6 +67,7 @@ describe('RegisterUseCase', () => {
   let refreshTokens: jest.Mocked<RefreshTokenRepository>;
   let hasher: jest.Mocked<PasswordHasher>;
   let tokens: jest.Mocked<TokenService>;
+  let userRegistered: jest.Mocked<UserRegisteredPublisher>;
   let useCase: RegisterUseCase;
 
   beforeEach(() => {
@@ -73,6 +75,7 @@ describe('RegisterUseCase', () => {
       findByEmail: jest.fn(),
       findById: jest.fn(),
       create: jest.fn(),
+      markVerified: jest.fn(),
     };
     refreshTokens = {
       create: jest.fn(),
@@ -90,7 +93,14 @@ describe('RegisterUseCase', () => {
       signRefresh: jest.fn(),
       verifyRefresh: jest.fn(),
     };
-    useCase = new RegisterUseCase(users, hasher, tokens, refreshTokens);
+    userRegistered = { publish: jest.fn() };
+    useCase = new RegisterUseCase(
+      users,
+      hasher,
+      tokens,
+      refreshTokens,
+      userRegistered,
+    );
   });
 
   it('registra un usuario nuevo y emite tokens', async () => {

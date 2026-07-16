@@ -12,6 +12,7 @@ import { PhoneNumber } from '../../domain/value-objects/phone-number.vo';
 import { RegisterCommand, RegisterResult } from '../dtos/auth.dtos';
 import { PasswordHasher } from '../ports/password-hasher.port';
 import { TokenService } from '../ports/token-service.port';
+import { UserRegisteredPublisher } from '../ports/user-registered.publisher.port';
 import { issueSession } from './issue-session';
 
 export class RegisterUseCase {
@@ -20,6 +21,7 @@ export class RegisterUseCase {
     private readonly hasher: PasswordHasher,
     private readonly tokens: TokenService,
     private readonly refreshTokens: RefreshTokenRepository,
+    private readonly userRegistered: UserRegisteredPublisher,
   ) {}
 
   async execute(cmd: RegisterCommand): Promise<RegisterResult> {
@@ -53,6 +55,12 @@ export class RegisterUseCase {
       tokens: this.tokens,
       hasher: this.hasher,
       refreshTokens: this.refreshTokens,
+    });
+
+    await this.userRegistered.publish({
+      userId: user.id,
+      email: user.email.raw,
+      phoneNumber: user.phoneNumber.raw,
     });
 
     return {

@@ -10,23 +10,29 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "nest build gateway && nest build auth",
+    "build": "nest build gateway && nest build auth && nest build verification",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:gateway": "nest start gateway --watch",
     "start:auth": "nest start auth --watch",
+    "start:verification": "nest start verification --watch",
     "start:prod:gateway": "node dist/apps/gateway/main",
     "start:prod:auth": "node dist/apps/auth/main",
+    "start:prod:verification": "node dist/apps/verification/main",
     "lint": "eslint \"{apps,libs}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./apps/gateway/test/jest-e2e.json --runInBand",
-    "db:migrate": "knex migrate:latest --knexfile apps/auth/knexfile.ts",
-    "db:rollback": "knex migrate:rollback --knexfile apps/auth/knexfile.ts",
-    "db:make": "knex migrate:make --knexfile apps/auth/knexfile.ts -x ts"
+    "db:migrate": "pnpm db:migrate:auth && pnpm db:migrate:verification",
+    "db:migrate:auth": "knex migrate:latest --knexfile apps/auth/knexfile.ts",
+    "db:migrate:verification": "knex migrate:latest --knexfile apps/verification/knexfile.ts",
+    "db:rollback:auth": "knex migrate:rollback --knexfile apps/auth/knexfile.ts",
+    "db:rollback:verification": "knex migrate:rollback --knexfile apps/verification/knexfile.ts",
+    "db:make:auth": "knex migrate:make --knexfile apps/auth/knexfile.ts -x ts",
+    "db:make:verification": "knex migrate:make --knexfile apps/verification/knexfile.ts -x ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

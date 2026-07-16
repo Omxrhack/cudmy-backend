@@ -11,6 +11,8 @@ services:
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Crea cudmy_verification en el primer arranque del volumen.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-cudmy} -d ${POSTGRES_DB:-cudmy_auth}']
       interval: 5s

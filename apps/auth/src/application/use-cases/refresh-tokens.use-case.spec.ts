@@ -64,6 +64,7 @@ describe('RefreshTokensUseCase', () => {
       findByEmail: jest.fn(),
       findById: jest.fn(),
       create: jest.fn(),
+      markVerified: jest.fn(),
     };
     refreshTokens = {
       create: jest.fn(),
